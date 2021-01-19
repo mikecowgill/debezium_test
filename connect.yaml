@@ -1,0 +1,52 @@
+apiVersion: kafka.strimzi.io/v1beta1
+kind: KafkaConnect
+metadata:
+  name: connect-debezium
+  namespace: kafka
+  annotations:
+  # use-connector-resources configures this KafkaConnect
+  # to use KafkaConnector resources to avoid
+  # needing to call the Connect REST API directly
+    strimzi.io/use-connector-resources: "true"
+spec:
+  image: algohub/lendmatic-debezium:1.0-1.4.0.Final
+  replicas: 1
+  bootstrapServers: kafka-kafka-bootstrap.kafka:9093
+  # resources:
+  #   requests:
+  #     memory: "2Gi"
+  #   limits:
+  #     memory: "2Gi"
+  tls:
+    trustedCertificates:
+      - secretName: kafka-cluster-ca-cert
+        certificate: ca.crt
+  authentication:
+    type: tls
+    certificateAndKey:
+      secretName: kafka-debezium
+      certificate: user.crt
+      key: user.key
+  config:
+    config.storage.replication.factor: 1
+    offset.storage.replication.factor: 1
+    status.storage.replication.factor: 1
+    config.providers: file
+    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider
+    max.request.size: 10485760
+    producer.max.request.size: 10485760
+    consumer.max.request.size: 10485760
+    enable.apicurio.converters: true
+    key.converter.schemas.enable: false
+    value.converter.schemas.enable: false
+    key.converter: io.apicurio.registry.utils.converter.AvroConverter
+    value.converter: io.apicurio.registry.utils.converter.AvroConverter
+  externalConfiguration:
+    volumes:
+      - name: connector-config
+        secret:
+          secretName: debezium-credentials
+  logging:
+    type: inline
+    loggers:
+      log4j.rootLogger: "INFO"
