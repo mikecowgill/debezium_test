@@ -1,0 +1,38 @@
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaConnector
+metadata:
+  name: enc-postgresql-connector
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: connect-debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    snapshot.mode: exported
+    slot.name: enc_debezium
+    # Dev only
+    # slot.drop.on.stop: true
+    database.hostname: postgresql.postgresql
+    database.port: 5432
+    database.user: ${file:/opt/kafka/external-configuration/connector-config/debezium-credentials.properties:postgresql_username}
+    database.password: ${file:/opt/kafka/external-configuration/connector-config/debezium-credentials.properties:postgresql_password}
+    database.server.name: encdb
+    database.dbname: dbname
+    schema.whitelist: enc
+    # Debezium is choking and dying on the enc.uldd,enc.va_loan_data tables.
+    # table.blacklist: enc.uldd,enc.va_loan_data
+    max.request.size: 10485760
+    key.converter.schemas.enable: false
+    value.converter.schemas.enable: false
+    key.converter: io.apicurio.registry.utils.converter.AvroConverter
+    key.converter.apicurio.registry.converter.serializer: io.apicurio.registry.utils.serde.AvroKafkaSerializer
+    key.converter.apicurio.registry.converter.deserializer: io.apicurio.registry.utils.serde.AvroKafkaDeserializer
+    key.converter.apicurio.registry.url: http://apicurio-registry-service-6rr5m.kafka:8080/api
+    key.converter.apicurio.registry.global-id: io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy
+    value.converter: io.apicurio.registry.utils.converter.AvroConverter
+    value.converter.apicurio.registry.converter.serializer: io.apicurio.registry.utils.serde.AvroKafkaSerializer
+    value.converter.apicurio.registry.converter.deserializer: io.apicurio.registry.utils.serde.AvroKafkaDeserializer
+    value.converter.apicurio.registry.url: http://apicurio-registry-service-6rr5m.kafka:8080/api
+    value.converter.apicurio.registry.global-id: io.apicurio.registry.utils.serde.strategy.GetOrCreateIdStrategy
